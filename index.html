@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Réseau Richert</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Carte interactive des collaborations, établissements partenaires et thématiques de recherche de Raphaël Richert (odontologie, biomécanique, IA).">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: header + control rail, then a two-column workspace (network map | ranking/detail), publications ledger below. */
+:root{
+  --bg:#f6f7f7; --surface:#ffffff; --ink:#14201f; --ink-2:#4b5856; --ink-3:#7c8785;
+  --line:#dde3e2; --edge:#9aa6a4; --land:#e4e9e8; --accent:#0f6b63; --accent-soft:#e1efed;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s6:#008300; --s7:#6250d6; --s8:#e34948; --s0:#a9b2b0;
+  --q1:#86b6ef; --q2:#3987e5; --q3:#256abf; --q4:#184f95; --q5:#0d366b;
+  --f-display:"Source Serif 4", Georgia, "Times New Roman", serif;
+  --f-body:"Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#111716; --surface:#182120; --ink:#e8eeec; --ink-2:#b3bfbc; --ink-3:#83908d;
+  --line:#2a3634; --edge:#5d6b69; --land:#26312f; --accent:#5cc2b6; --accent-soft:#1d3532;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767; --s0:#5d6866;
+  --q1:#184f95; --q2:#256abf; --q3:#3987e5; --q4:#6da7ec; --q5:#b7d3f6; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#111716; --surface:#182120; --ink:#e8eeec; --ink-2:#b3bfbc; --ink-3:#83908d;
+  --line:#2a3634; --edge:#5d6b69; --land:#26312f; --accent:#5cc2b6; --accent-soft:#1d3532;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767; --s0:#5d6866;
+  --q1:#184f95; --q2:#256abf; --q3:#3987e5; --q4:#6da7ec; --q5:#b7d3f6; color-scheme:dark }
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;margin:0}
+.wrap{max-width:1360px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 48px;display:flex;flex-direction:column;gap:20px}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px 32px}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);margin:0 0 6px}
+h1{font-family:var(--f-display);font-weight:600;font-size:clamp(28px,4vw,40px);line-height:1.1;margin:0;text-wrap:balance}
+.lede{color:var(--ink-2);margin:8px 0 0;max-width:62ch}
+.stats{display:flex;gap:24px;flex-wrap:wrap}
+.stat{display:flex;flex-direction:column}
+.stat b{font-family:var(--f-display);font-size:28px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums}
+.stat span{font-size:12px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.05em;margin-top:4px}
+.controls{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;padding:12px 14px;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.seg{display:flex;flex-wrap:wrap;gap:2px;background:var(--bg);padding:3px;border-radius:8px;border:1px solid var(--line)}
+.seg button{font:500 14px var(--f-body);color:var(--ink-2);background:transparent;border:0;border-radius:6px;padding:6px 12px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.seg button:hover{color:var(--ink)}
+.ctl{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2)}
+.ctl select,.ctl input[type=search]{font:14px var(--f-body);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 8px}
+.ctl input[type=search]{width:170px}
+.ctl input[type=range]{accent-color:var(--accent);width:90px}
+.ctl output{font-family:var(--f-mono);font-size:12px;min-width:2.5ch;color:var(--ink)}
+.ctl label{display:flex;align-items:center;gap:6px;cursor:pointer}
+.ctl input[type=checkbox]{accent-color:var(--accent)}
+.spacer{flex:1}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.work{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px}
+@media (max-width:960px){.work{grid-template-columns:minmax(0,1fr)}}
+.map{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden;min-height:560px;height:68vh;max-height:760px}
+.map svg{display:block;width:100%;height:100%;cursor:grab}
+.map svg:active{cursor:grabbing}
+.map .hint{position:absolute;left:14px;bottom:10px;font-size:12px;color:var(--ink-3);pointer-events:none}
+.map .zoom{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:4px}
+.map .zoom button{width:32px;height:32px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:500 16px var(--f-body);cursor:pointer}
+.legend{position:absolute;left:12px;bottom:32px;right:60px;display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--ink-2);background:color-mix(in srgb,var(--surface) 88%,transparent);padding:6px 10px;border-radius:8px;width:fit-content;max-width:calc(100% - 72px)}
+.legend .row{display:flex;align-items:center;gap:6px;min-width:0;max-width:230px}
+.legend .row span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sw{width:10px;height:10px;border-radius:50%;flex:none}
+.ramp{width:160px;height:8px;border-radius:4px;background:linear-gradient(90deg,var(--q1),var(--q2),var(--q3),var(--q4),var(--q5))}
+.rampl{display:flex;justify-content:space-between;width:160px;font-family:var(--f-mono);font-size:11px}
+.map .mode{position:absolute;left:12px;top:10px;z-index:2;display:flex;gap:8px;flex-wrap:wrap;background:none;border:0;padding:0}
+#geo{display:block;width:100%;height:100%;cursor:grab}
+.cty{stroke:var(--surface);stroke-width:.6px;vector-effect:non-scaling-stroke}
+.cty.on{cursor:pointer}.cty.on:hover{stroke:var(--ink);stroke-width:1.2px}
+.cty.sel{stroke:var(--ink);stroke-width:2px}
+.arc{fill:none;stroke:var(--s2);stroke-linecap:round;vector-effect:non-scaling-stroke;opacity:.55}
+.city{fill:var(--s2);stroke:var(--surface);stroke-width:1.2px;vector-effect:non-scaling-stroke;cursor:default}
+.city.home{fill:var(--ink)}
+.clab{font-family:var(--f-body);fill:var(--ink);paint-order:stroke;stroke:var(--surface);stroke-width:3px;stroke-linejoin:round;pointer-events:none}
+.arcsw{width:18px;height:3px;border-radius:2px;background:var(--s2);flex:none}
+.node circle{stroke:var(--surface);stroke-width:1.5px;cursor:pointer}
+.node text{font-family:var(--f-body);fill:var(--ink);paint-order:stroke;stroke:var(--surface);stroke-width:3px;stroke-linejoin:round;pointer-events:none}
+.link{stroke:var(--edge);fill:none}
+.dim .node:not(.hi){opacity:.18}
+.dim .link:not(.hi){opacity:.05}
+.link.hi{stroke:var(--ink-2)}
+.node.sel circle{stroke:var(--ink);stroke-width:2.5px}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font-size:13px;padding:6px 9px;border-radius:6px;max-width:260px;line-height:1.35;transform:translate(-50%,calc(-100% - 12px))}
+.tip small{display:block;opacity:.75;font-family:var(--f-mono);font-size:11px}
+aside{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0;max-height:760px;overflow:auto}
+aside h2{font-family:var(--f-display);font-size:20px;font-weight:600;margin:0;line-height:1.2;text-wrap:balance}
+aside .sub{font-size:13px;color:var(--ink-3);margin:-6px 0 0}
+.rank{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.rank button{all:unset;box-sizing:border-box;width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:5px 6px;border-radius:6px;cursor:pointer}
+.rank button:hover,.rank button:focus-visible{background:var(--accent-soft)}
+.rank .nm{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rank .ct{font-family:var(--f-mono);font-size:12px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.rank .bar{grid-column:1/-1;height:4px;border-radius:0 2px 2px 0;background:var(--accent);opacity:.75}
+.back{all:unset;cursor:pointer;font-size:13px;color:var(--accent);font-weight:500}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13px;margin:0}
+.kv dt{color:var(--ink-3)} .kv dd{margin:0;font-family:var(--f-mono);font-size:12px}
+h3{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);margin:6px 0 0;font-weight:600}
+.pubs{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px 20px}
+.pubs header{align-items:baseline;margin-bottom:8px}
+.pubs h2{font-family:var(--f-display);font-size:22px;font-weight:600;margin:0}
+.pubs ol{list-style:none;margin:0;padding:0}
+.pubs li{display:grid;grid-template-columns:52px minmax(0,1fr);gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.pubs li:first-child{border-top:0}
+.yr{font-family:var(--f-mono);font-size:13px;color:var(--ink-3);padding-top:2px}
+.pt{font-weight:500;margin:0}
+.pa{font-size:13px;color:var(--ink-2);margin:2px 0 0}
+.pa .me{color:var(--ink);font-weight:600}
+.pj{font-size:13px;color:var(--ink-3);margin:2px 0 0;font-style:italic}
+.pj a{color:var(--accent);font-style:normal;font-family:var(--f-mono);font-size:12px;text-decoration:none;margin-left:6px}
+.pj a:hover{text-decoration:underline}
+.tag{font-style:normal;font-family:var(--f-mono);font-size:11px;padding:1px 6px;border-radius:4px;background:var(--accent-soft);color:var(--accent);margin-left:6px}
+footer{font-size:12px;color:var(--ink-3)}
+@media (max-width:600px){.map{height:62vh;min-height:420px}.ctl input[type=search]{width:130px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <p class="eyebrow" data-i18n="eyebrow">Odontologie · Biomécanique · IA</p>
+      <h1>Raphaël Richert</h1>
+      <p class="lede" data-i18n="lede">Carte des collaborations construite à partir des publications : co-auteurs, établissements partenaires, pays et thématiques. Cliquez sur un nœud pour voir les liens et les articles correspondants.</p>
+    </div>
+    <div class="stats" id="stats"></div>
+  </header>
+
+  <div class="controls" role="toolbar">
+    <div class="seg" id="views" role="group" aria-label="Vue"></div>
+    <div class="ctl"><label for="color" data-i18n="colorBy">Couleur</label>
+      <select id="color"><option value="cluster" data-i18n="clusters">Clusters</option><option value="year" data-i18n="overlay">Année moyenne</option></select></div>
+    <div class="ctl"><label for="minocc" data-i18n="minOcc">Publications min.</label><input type="range" id="minocc" min="1" max="6" value="1"><output id="minoccv">1</output></div>
+    <div class="ctl"><label for="y0" data-i18n="period">Période</label>
+      <input type="range" id="y0" min="2017" max="2026" value="2017"><output id="y0v">2017</output>–<input type="range" id="y1" min="2017" max="2026" value="2026"><output id="y1v">2026</output></div>
+    <div class="ctl"><label><input type="checkbox" id="hideMe"> <span data-i18n="hideMe">Masquer R. Richert</span></label></div>
+    <div class="ctl"><label><input type="checkbox" id="patents" checked> <span data-i18n="patents">Brevets & congrès</span></label></div>
+    <div class="spacer"></div>
+    <div class="ctl"><label for="q" class="sr" data-i18n="search">Rechercher</label><input type="search" id="q" placeholder="Rechercher…" list="names"><datalist id="names"></datalist></div>
+    <div class="seg" id="lang" role="group" aria-label="Langue"><button data-l="fr" aria-pressed="true">FR</button><button data-l="en" aria-pressed="false">EN</button></div>
+  </div>
+
+  <div class="work">
+    <div class="map" id="map">
+      <svg id="svg" role="img" aria-label="Réseau"></svg>
+      <svg id="geo" role="img" aria-label="Carte du monde" hidden></svg>
+      <div class="mode" id="mode" hidden><div class="seg" role="group"><button data-m="map" aria-pressed="true">Carte</button><button data-m="net" aria-pressed="false">Réseau</button></div><div class="seg" id="region" role="group"><button data-r="world" aria-pressed="true">Monde</button><button data-r="europe" aria-pressed="false">Europe</button></div></div>
+      <div class="legend" id="legend"></div>
+      <div class="zoom"><button id="zin" aria-label="Zoom +">+</button><button id="zout" aria-label="Zoom −">−</button><button id="zfit" aria-label="Recentrer">⤢</button></div>
+      <div class="hint" data-i18n="hint">Glisser pour déplacer · molette pour zoomer · survol pour isoler les liens</div>
+      <div class="tip" id="tip" hidden></div>
+    </div>
+    <aside id="side" aria-live="polite"></aside>
+  </div>
+
+  <section class="pubs">
+    <header><h2 id="pubsTitle">Publications</h2><span class="ctl" id="pubsCount"></span></header>
+    <ol id="pubList"></ol>
+  </section>
+
+  <footer data-i18n="foot">Données extraites manuellement des PDF des articles (affiliations telles qu'imprimées). Réseau de co-occurrence : deux éléments sont liés quand ils figurent sur une même publication ; l'épaisseur du lien suit le nombre de publications communes. Clusters calculés par l'algorithme de Louvain.</footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
+<script src="data.js"></script>
+<script src="world.js"></script>
+<script>
+(function(){
+const PUBS = window.PUBS, ORGS = window.ORGS, THEMES = window.THEMES, OWNER = window.OWNER;
+const COUNTRY_FR = {"France":"France","Belgium":"Belgique","Sweden":"Suède","Germany":"Allemagne","Luxembourg":"Luxembourg","Switzerland":"Suisse","Italy":"Italie","Portugal":"Portugal","Netherlands":"Pays-Bas","Canada":"Canada","United States":"États-Unis","Qatar":"Qatar","Saudi Arabia":"Arabie saoudite","Egypt":"Égypte","Japan":"Japon","India":"Inde","Taiwan":"Taïwan","Hong Kong SAR":"Hong Kong","Australia":"Australie"};
+const T = {
+ fr:{eyebrow:"Odontologie · Biomécanique · IA",lede:"Carte des collaborations construite à partir des publications : co-auteurs, établissements partenaires, pays et thématiques. Cliquez sur un nœud pour voir les liens et les articles correspondants.",
+  colorBy:"Couleur",clusters:"Clusters",overlay:"Année moyenne",minOcc:"Publications min.",period:"Période",hideMe:"Masquer R. Richert",patents:"Brevets & congrès",search:"Rechercher",
+  hint:"Glisser pour déplacer · molette pour zoomer · survol pour isoler les liens",
+  foot:"Données extraites des PDF des articles (affiliations telles qu'imprimées). Réseau de co-occurrence : deux éléments sont liés quand ils figurent sur une même publication ; l'épaisseur du lien suit le nombre de publications communes. Clusters calculés par l'algorithme de Louvain.",
+  views:{authors:"Collaborateurs",orgs:"Établissements",countries:"Pays",themes:"Thématiques",keywords:"Mots-clés"},
+  stats:["publications","co-auteurs","établissements","pays"],
+  rankTitle:{authors:"Principaux collaborateurs",orgs:"Établissements les plus liés",countries:"Pays partenaires",themes:"Thématiques",keywords:"Mots-clés les plus fréquents"},
+  rankSub:"Nombre de publications communes sur la période",pubs:"Publications",pubsOf:"Publications – ",back:"← Retour au classement",
+  nPubs:"Publications",years:"Années",links:"Liens",cluster:"Cluster",strongest:"Liens les plus forts",none:"Aucun élément ne correspond aux filtres.",
+  count:n=>n+" publication"+(n>1?"s":""),patent:"brevet",conference:"congrès",meanYear:"année moyenne",ph:"Rechercher…",other:"Autres",map:"Carte",net:"Réseau",world:"Monde",europe:"Europe",home:"France (Lyon)",partners:"Pays partenaires – publications communes",cities:"Ville partenaire",arcs:"Lien depuis Lyon"},
+ en:{eyebrow:"Dentistry · Biomechanics · AI",lede:"Collaboration map built from publications: co-authors, partner institutions, countries and research themes. Click a node to see its links and the matching papers.",
+  colorBy:"Colour",clusters:"Clusters",overlay:"Mean year",minOcc:"Min. publications",period:"Period",hideMe:"Hide R. Richert",patents:"Patents & conferences",search:"Search",
+  hint:"Drag to pan · scroll to zoom · hover to isolate links",
+  foot:"Data extracted from the article PDFs (affiliations as printed). Co-occurrence network: two items are linked when they appear on the same publication; link width follows the number of shared publications. Clusters computed with the Louvain algorithm.",
+  views:{authors:"Collaborators",orgs:"Institutions",countries:"Countries",themes:"Themes",keywords:"Keywords"},
+  stats:["publications","co-authors","institutions","countries"],
+  rankTitle:{authors:"Main collaborators",orgs:"Most connected institutions",countries:"Partner countries",themes:"Research themes",keywords:"Most frequent keywords"},
+  rankSub:"Number of shared publications in the period",pubs:"Publications",pubsOf:"Publications – ",back:"← Back to ranking",
+  nPubs:"Publications",years:"Years",links:"Links",cluster:"Cluster",strongest:"Strongest links",none:"No item matches the filters.",
+  count:n=>n+" publication"+(n>1?"s":""),patent:"patent",conference:"conference",meanYear:"mean year",ph:"Search…",other:"Other",map:"Map",net:"Network",world:"World",europe:"Europe",home:"France (Lyon)",partners:"Partner countries – shared publications",cities:"Partner city",arcs:"Link from Lyon"}
+};
+const VIEWS = ["authors","orgs","countries","themes","keywords"];
+const DEFAULT_MIN = {authors:1,orgs:1,countries:1,themes:1,keywords:2};
+let S = {mode:"map", view:"authors", lang:"fr", color:"cluster", min:1, y0:2017, y1:2026, hideMe:false, patents:true, sel:null};
+try{ const v=localStorage.getItem("rr-lang"); if(v) S.lang=v; }catch(e){}
+const h = location.hash.replace("#",""); if(VIEWS.includes(h)) S.view=h;
+S.min = DEFAULT_MIN[S.view];
+const L = () => T[S.lang];
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+/* items of a publication for a given view */
+function items(p, view){
+  if(view==="authors") return p.authors;
+  if(view==="orgs") return p.orgs;
+  if(view==="countries") return [...new Set(p.orgs.map(o=>ORGS[o][3]))];
+  if(view==="themes") return p.themes;
+  return p.kw.map(k=>k.toLowerCase());
+}
+function label(id, view){
+  if(view==="orgs") return ORGS[id][0];
+  if(view==="countries") return S.lang==="fr" ? (COUNTRY_FR[id]||id) : id;
+  if(view==="themes") return THEMES[id][S.lang==="fr"?0:1];
+  return id;
+}
+function fullLabel(id, view){
+  if(view==="orgs") return ORGS[id][1]+" — "+ORGS[id][2]+", "+label(ORGS[id][3],"countries");
+  return label(id, view);
+}
+function pubsFiltered(){
+  return PUBS.filter(p => p.year>=S.y0 && p.year<=S.y1 && (S.patents || p.type==="article"));
+}
+
+/* build co-occurrence graph */
+function build(){
+  const pubs = pubsFiltered(), view=S.view;
+  const nodes = new Map();
+  pubs.forEach(p=>{
+    let its = [...new Set(items(p,view))];
+    if(view==="authors" && S.hideMe) its = its.filter(a=>a!==OWNER);
+    its.forEach(id=>{
+      if(!nodes.has(id)) nodes.set(id,{id,count:0,years:[],pubs:[]});
+      const n=nodes.get(id); n.count++; n.years.push(p.year); n.pubs.push(p);
+    });
+  });
+  const keep = new Set([...nodes.values()].filter(n=>n.count>=S.min).map(n=>n.id));
+  const edges = new Map();
+  pubs.forEach(p=>{
+    const its=[...new Set(items(p,view))].filter(i=>keep.has(i)).sort();
+    for(let i=0;i<its.length;i++) for(let j=i+1;j<its.length;j++){
+      const k=its[i]+"\u0001"+its[j];
+      if(!edges.has(k)) edges.set(k,{source:its[i],target:its[j],w:0}); edges.get(k).w++;
+    }
+  });
+  const N=[...nodes.values()].filter(n=>keep.has(n.id)).map(n=>({...n,label:label(n.id,view),mean:d3.mean(n.years)}));
+  const E=[...edges.values()];
+  louvain(N,E);
+  return {N,E,pubs};
+}
+
+/* Louvain community detection (weighted, deterministic order) */
+function louvain(N,E){
+  let idx=new Map(N.map((n,i)=>[n.id,i]));
+  let comm=N.map((_,i)=>i);
+  let nodesCur=N.map((_,i)=>[i]);
+  let adj=N.map(()=>new Map());
+  E.forEach(e=>{const a=idx.get(e.source),b=idx.get(e.target);adj[a].set(b,(adj[a].get(b)||0)+e.w);adj[b].set(a,(adj[b].get(a)||0)+e.w);});
+  for(let level=0;level<10;level++){
+    const n=adj.length; const k=adj.map(m=>[...m.values()].reduce((s,v)=>s+v,0)+ (m.get?0:0));
+    const m2=k.reduce((s,v)=>s+v,0); if(m2===0) break;
+    const c=adj.map((_,i)=>i); const tot=k.slice();
+    let moved=true, any=false, guard=0;
+    while(moved && guard++<50){ moved=false;
+      for(let i=0;i<n;i++){
+        const ci=c[i]; const nb=new Map();
+        adj[i].forEach((w,j)=>{ if(j!==i) nb.set(c[j],(nb.get(c[j])||0)+w); });
+        tot[ci]-=k[i];
+        let best=ci, bestG=(nb.get(ci)||0)-tot[ci]*k[i]/m2;
+        nb.forEach((w,cc)=>{ const g=w-tot[cc]*k[i]/m2; if(g>bestG+1e-12){bestG=g;best=cc;} });
+        tot[best]+=k[i]; if(best!==ci){c[i]=best;moved=true;any=true;}
+      }
+    }
+    if(!any) break;
+    const ids=[...new Set(c)]; const remap=new Map(ids.map((v,i)=>[v,i]));
+    const newNodes=ids.map(()=>[]); nodesCur.forEach((members,i)=>newNodes[remap.get(c[i])].push(...members));
+    const nadj=ids.map(()=>new Map());
+    adj.forEach((mm,i)=>mm.forEach((w,j)=>{const a=remap.get(c[i]),b=remap.get(c[j]); nadj[a].set(b,(nadj[a].get(b)||0)+w);}));
+    nodesCur=newNodes; adj=nadj;
+  }
+  nodesCur.forEach((members,ci)=>members.forEach(i=>comm[i]=ci));
+  // order clusters by total size so colour slot 1 = largest cluster
+  const size=new Map(); N.forEach((nd,i)=>size.set(comm[i],(size.get(comm[i])||0)+nd.count));
+  const order=[...size.entries()].sort((a,b)=>b[1]-a[1]).map(e=>e[0]);
+  const rank=new Map(order.map((c,i)=>[c,i]));
+  N.forEach((nd,i)=>nd.cluster=rank.get(comm[i]));
+}
+
+/* ---------- rendering ---------- */
+const svg=d3.select("#svg"), mapEl=document.getElementById("map"), tip=document.getElementById("tip");
+const root=svg.append("g"); const gL=root.append("g"), gN=root.append("g");
+const zoom=d3.zoom().scaleExtent([0.2,6]).on("zoom",ev=>{root.attr("transform",ev.transform); updateLabels(ev.transform.k);});
+svg.call(zoom).on("dblclick.zoom",null);
+const posCache=new Map(); let G=null, sim=null, nodeSel=null, linkSel=null, yearExt=[2017,2026];
+
+function colorOf(n){
+  if(S.color==="year"){
+    const t=(n.mean-yearExt[0])/Math.max(1,yearExt[1]-yearExt[0]);
+    return d3.interpolateRgbBasis(["--q1","--q2","--q3","--q4","--q5"].map(cssv))(Math.max(0,Math.min(1,t)));
+  }
+  return n.cluster<8 ? cssv("--s"+(n.cluster+1)) : cssv("--s0");
+}
+function radius(n){ return 4+Math.sqrt(n.count)*4.2; }
+
+function render(){
+  G=build();
+  const {N,E}=G;
+  yearExt=d3.extent(N,n=>n.mean); if(!N.length) yearExt=[2017,2026];
+  const W=mapEl.clientWidth, H=mapEl.clientHeight;
+  svg.attr("viewBox",[0,0,W,H]);
+  if(sim) sim.stop();
+  const maxW=d3.max(E,e=>e.w)||1;
+  linkSel=gL.selectAll("line").data(E,e=>e.source+"|"+e.target).join("line").attr("class","link")
+    .attr("stroke-width",e=>0.6+2.6*e.w/maxW).attr("stroke-opacity",e=>0.25+0.5*e.w/maxW);
+  nodeSel=gN.selectAll("g.node").data(N,n=>n.id).join(enter=>{
+    const g=enter.append("g").attr("class","node").attr("tabindex",0);
+    g.append("circle"); g.append("text").attr("dy","0.32em");
+    return g;
+  });
+  nodeSel.select("circle").attr("r",radius).attr("fill",colorOf);
+  nodeSel.select("text").text(n=>n.label).attr("x",n=>radius(n)+3).attr("font-size",n=>Math.min(16,10.5+n.count*0.6));
+  nodeSel.on("mouseenter",(ev,n)=>hover(n,ev)).on("mousemove",(ev,n)=>moveTip(ev,n)).on("mouseleave",()=>hover(null))
+    .on("click",(ev,n)=>{ev.stopPropagation(); select(n.id);})
+    .on("keydown",(ev,n)=>{if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();select(n.id);}})
+    .call(d3.drag().on("start",(ev,n)=>{n.fx=n.x;n.fy=n.y;}).on("drag",(ev,n)=>{n.fx=ev.x;n.fy=ev.y;n.x=ev.x;n.y=ev.y;tick();}).on("end",(ev,n)=>{}));
+  svg.on("click",()=>select(null));
+
+  // VOSviewer-like static layout: clusters pulled together, run to convergence, then freeze
+  const nC=d3.max(N,n=>n.cluster)+1||1;
+  const cx=i=>W/2+Math.cos(2*Math.PI*i/nC)*Math.min(W,H)*0.3*(nC>1);
+  const cy=i=>H/2+Math.sin(2*Math.PI*i/nC)*Math.min(W,H)*0.3*(nC>1);
+  N.forEach((n,i)=>{ const pc=posCache.get(S.view+n.id); if(pc){n.x=pc[0];n.y=pc[1];} if(n.x==null){ n.x=cx(n.cluster)+Math.cos(i)*20; n.y=cy(n.cluster)+Math.sin(i)*20; } });
+  const Ecopy=E.map(e=>({...e}));
+  sim=d3.forceSimulation(N)
+    .force("link",d3.forceLink(Ecopy).id(n=>n.id).distance(e=>95/Math.sqrt(e.w)).strength(e=>Math.min(1,0.15*e.w)))
+    .force("charge",d3.forceManyBody().strength(n=>-140-radius(n)*14))
+    .force("collide",d3.forceCollide(n=>radius(n)+4))
+    .force("x",d3.forceX(n=>cx(n.cluster)).strength(0.06))
+    .force("y",d3.forceY(n=>cy(n.cluster)).strength(0.06))
+    .stop();
+  for(let i=0;i<320;i++) sim.tick();
+  linkSel.each(function(_,i){ this.__data__=Ecopy[i]; });
+  G.E=Ecopy; N.forEach(n=>posCache.set(S.view+n.id,[n.x,n.y]));
+  tick(); legend(); fit(false); side(); pubList(); stats(); datalist();
+  if(S.sel && !N.find(n=>n.id===S.sel)) S.sel=null;
+  markSel();
+  const geoOn = S.view==="countries" && S.mode==="map";
+  document.getElementById("mode").hidden = S.view!=="countries";
+  document.getElementById("region").hidden = !geoOn;
+  document.querySelectorAll("#region button").forEach(b=>{b.textContent=L()[b.dataset.r];});
+  document.querySelectorAll("#mode [data-m]").forEach(b=>{b.textContent=L()[b.dataset.m]; b.setAttribute("aria-pressed",b.dataset.m===S.mode);});
+  document.getElementById("svg").style.display = geoOn ? "none" : "";
+  document.getElementById("geo").hidden = !geoOn;
+  document.querySelector("#map .hint").hidden = geoOn;
+  if(geoOn) drawGeo();
+}
+
+/* ---------- world map (countries view) ---------- */
+const geo=d3.select("#geo"); let geoG=null, geoZoom=null;
+const ATLAS={"United States":"United States of America"};
+function cityOf(c){ const v=CITY[c]; return typeof v==="string"? v : c; }
+function drawGeo(){
+  const W=mapEl.clientWidth, H=mapEl.clientHeight, l=L();
+  geo.attr("viewBox",[0,0,W,H]); geo.selectAll("*").remove();
+  const feats=topojson.feature(WORLD,WORLD.objects.countries).features.filter(f=>f.properties.name!=="Antarctica");
+  const byAtlas=new Map(G.N.map(n=>[ATLAS[n.id]||n.id,n]));
+  const others=G.N.filter(n=>n.id!=="France"), maxO=d3.max(others,n=>n.count)||1;
+  const ramp=d3.interpolateRgbBasis(["--q1","--q2","--q3","--q4","--q5"].map(cssv));
+  // legend first (its height sets the bottom padding)
+  const lg=document.getElementById("legend");
+  lg.innerHTML=`<div class="row"><span class="sw" style="background:var(--accent);border-radius:2px"></span><span>${l.home}</span></div>
+    <div class="row" style="max-width:none"><span>${l.partners}</span><span class="rampl" style="width:auto;gap:6px;display:flex;align-items:center"><span>1</span><span class="ramp" style="width:110px"></span><span>${maxO}</span></span></div>
+    <div class="row"><span class="sw" style="background:var(--s2)"></span><span>${l.cities}</span></div>
+    <div class="row"><span class="arcsw"></span><span>${l.arcs}</span></div>`;
+  const padB=lg.offsetHeight+24;
+  const proj=d3.geoNaturalEarth1().fitExtent([[12,48],[W-56,H-padB]],{type:"FeatureCollection",features:feats});
+  const path=d3.geoPath(proj); geoProj=proj;
+  document.querySelectorAll("#region button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.r==="world"));
+  geoG=geo.append("g");
+  geoG.append("g").selectAll("path").data(feats).join("path")
+    .attr("class",f=>"cty"+(byAtlas.has(f.properties.name)?" on":"")).attr("d",path)
+    .attr("fill",f=>{const n=byAtlas.get(f.properties.name); if(!n) return cssv("--land"); if(n.id==="France") return cssv("--accent");
+      return ramp(maxO>1? Math.sqrt((n.count-1)/(maxO-1))*0.85+0.15 : 0.6);})
+    .on("mouseenter mousemove",(ev,f)=>{const n=byAtlas.get(f.properties.name); if(!n) return; showTip(ev,`${esc(label(n.id,"countries"))}<small>${l.count(n.count)}</small>`);})
+    .on("mouseleave",()=>tip.hidden=true)
+    .on("click",(ev,f)=>{ev.stopPropagation(); const n=byAtlas.get(f.properties.name); if(n) select(n.id);});
+  // cities
+  const cities=new Map();
+  G.pubs.forEach(p=>{ const seen=new Set(); p.orgs.forEach(o=>{const c=cityOf(ORGS[o][2]); if(!cities.has(c)) cities.set(c,{c,count:0,orgs:new Set(),country:ORGS[o][3]}); cities.get(c).orgs.add(ORGS[o][0]); if(!seen.has(c)){seen.add(c); cities.get(c).count++;}}); });
+  const C=[...cities.values()].map(d=>({...d,p:proj([CITY[d.c][1],CITY[d.c][0]])})).sort((a,b)=>b.count-a.count);
+  const home=proj([CITY.Lyon[1],CITY.Lyon[0]]);
+  const ag=geoG.append("g"), cg=geoG.append("g"), tg=geoG.append("g");
+  ag.selectAll("path").data(C.filter(d=>d.c!=="Lyon")).join("path").attr("class","arc")
+    .attr("stroke-width",d=>0.8+Math.sqrt(d.count)*0.9)
+    .attr("d",d=>{const [x1,y1]=home,[x2,y2]=d.p,dx=x2-x1,dy=y2-y1,dist=Math.hypot(dx,dy),mx=(x1+x2)/2-dy*0.22,my=(y1+y2)/2+dx*0.22-dist*0.05; return `M${x1},${y1}Q${mx},${my} ${x2},${y2}`;});
+  const rr=d=>d.c==="Lyon"?6.5:2.4+Math.sqrt(d.count)*1.7;
+  cg.selectAll("circle").data(C).join("circle").attr("class",d=>"city"+(d.c==="Lyon"?" home":""))
+    .attr("cx",d=>d.p[0]).attr("cy",d=>d.p[1]).attr("r",rr)
+    .on("mouseenter mousemove",(ev,d)=>showTip(ev,`${esc(d.c)}<small>${l.count(d.count)}</small><small>${esc([...d.orgs].slice(0,4).join(" · "))}${d.orgs.size>4?" …":""}</small>`))
+    .on("mouseleave",()=>tip.hidden=true);
+  const major=d=>(d.c==="Lyon"||d.count>=2||d.p[0]<proj([-20,0])[0]||d.p[0]>proj([35,0])[0]||d.p[1]>proj([0,35])[1]);
+  const labelled=C;
+  const texts=tg.selectAll("text").data(labelled).join("text").attr("class","clab").text(d=>d.c).attr("dy","0.32em");
+  function place(k){
+    const boxes=[];
+    cg.selectAll("circle").attr("r",d=>rr(d)*Math.pow(k,0.3)/k);
+    texts.style("stroke-width",(3/k)+"px");
+    texts.attr("font-size",d=>(d.c==="Lyon"?13:11.5)/k).attr("x",d=>d.p[0]+(rr(d)*Math.pow(k,0.3)+3)/k).attr("y",d=>d.p[1])
+      .attr("display",d=>{const fs=(d.c==="Lyon"?13:11.5), x=d.p[0]*k+rr(d)*Math.pow(k,0.3)+3, y=d.p[1]*k, b=[x,y-fs*0.6,x+d.c.length*fs*0.55,y+fs*0.6];
+        if(d.c!=="Lyon"&&k<2&&!major(d)) return "none";
+        if(d.c!=="Lyon"&&boxes.some(o=>b[0]<o[2]&&b[2]>o[0]&&b[1]<o[3]&&b[3]>o[1])) return "none"; boxes.push(b); return null;});
+  }
+  place(1);
+  geoZoom=d3.zoom().scaleExtent([1,10]).translateExtent([[0,0],[W,H]]).on("zoom",ev=>{geoG.attr("transform",ev.transform); place(ev.transform.k);});
+  geo.call(geoZoom).on("dblclick.zoom",null).on("click",()=>select(null));
+  geoSel();
+}
+function geoSel(){ if(!geoG) return; geoG.selectAll("path.cty").classed("sel",f=>S.sel && (ATLAS[S.sel]||S.sel)===f.properties.name); }
+function showTip(ev,html){ const r=mapEl.getBoundingClientRect(); tip.innerHTML=html; tip.hidden=false; tip.style.left=(ev.clientX-r.left)+"px"; tip.style.top=(ev.clientY-r.top)+"px"; }
+const geoActive=()=>S.view==="countries"&&S.mode==="map";
+document.querySelectorAll("#mode [data-m]").forEach(b=>b.onclick=()=>{S.mode=b.dataset.m; render();});
+let geoProj=null;
+document.querySelectorAll("#region button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll("#region button").forEach(x=>x.setAttribute("aria-pressed",x===b));
+  if(b.dataset.r==="world"){ geo.transition().duration(500).call(geoZoom.transform,d3.zoomIdentity); return; }
+  const W=mapEl.clientWidth,H=mapEl.clientHeight,[x0,y1]=geoProj([-11,35]),[x1,y0]=geoProj([28,61]);
+  const k=Math.min(10,0.9*Math.min(W/(x1-x0),(H-90)/(y1-y0)));
+  geo.transition().duration(500).call(geoZoom.transform,d3.zoomIdentity.translate(W/2-k*(x0+x1)/2,(H-40)/2-k*(y0+y1)/2).scale(k));
+});
+function tick(){
+  linkSel.attr("x1",e=>e.source.x).attr("y1",e=>e.source.y).attr("x2",e=>e.target.x).attr("y2",e=>e.target.y);
+  nodeSel.attr("transform",n=>`translate(${n.x},${n.y})`);
+}
+function fit(anim=true){
+  const N=G.N; if(!N.length) return;
+  const W=mapEl.clientWidth,H=mapEl.clientHeight;
+  const x0=d3.min(N,n=>n.x-radius(n))-20, x1=d3.max(N,n=>n.x+radius(n)+Math.min(220,n.label.length*7))+20, y0=d3.min(N,n=>n.y-radius(n))-20, y1=d3.max(N,n=>n.y+radius(n))+20;
+  const padB=document.getElementById('legend').offsetHeight+30;
+  const k=Math.min(2.2,0.95*Math.min(W/(x1-x0),(H-padB)/(y1-y0)));
+  const t=d3.zoomIdentity.translate(W/2-k*(x0+x1)/2,(H-padB)/2-k*(y0+y1)/2).scale(k);
+  (anim?svg.transition().duration(400):svg).call(zoom.transform,t);
+}
+function updateLabels(k){
+  if(!G||!nodeSel) return;
+  const sorted=[...G.N].sort((a,b)=>b.count-a.count||b.label.length-a.label.length);
+  const pri=new Set([...hoverSet]); if(S.sel) pri.add(S.sel);
+  sorted.sort((a,b)=>(pri.has(b.id)-pri.has(a.id)));
+  const boxes=[], show=new Set();
+  for(const n of sorted){
+    const fs=Math.min(16,10.5+n.count*0.6), r=radius(n);  // screen px
+    const w=(n.label.length*fs*0.56)/k, hh=fs*1.1/k;
+    const b=[n.x+r+3/k, n.y-hh/2, n.x+r+3/k+w, n.y+hh/2];
+    // also keep text clear of other circles' centres region is skipped; check label-label overlap
+    const hitsCircle=G.N.some(m=>m!==n && (Math.max(b[0],Math.min(m.x,b[2]))-m.x)**2+(Math.max(b[1],Math.min(m.y,b[3]))-m.y)**2 < radius(m)**2);
+    const big=sorted.indexOf(n)<6;
+    if(pri.has(n.id) || ((big||!hitsCircle) && !boxes.some(o=>b[0]<o[2]&&b[2]>o[0]&&b[1]<o[3]&&b[3]>o[1]))){ boxes.push(b); show.add(n.id); }
+  }
+  nodeSel.select("text").attr("display",n=>show.has(n.id)?null:"none").attr("font-size",n=>Math.min(16,10.5+n.count*0.6)/k);
+  nodeSel.select("text").attr("x",n=>radius(n)+3/k);
+}
+let hoverSet=new Set();
+function neighbours(id){
+  const s=new Set([id]); G.E.forEach(e=>{const a=e.source.id||e.source,b=e.target.id||e.target; if(a===id)s.add(b); if(b===id)s.add(a);}); return s;
+}
+function hover(n,ev){
+  const focus = n ? n.id : S.sel;
+  hoverSet = focus ? neighbours(focus) : new Set();
+  svg.classed("dim",!!focus);
+  nodeSel.classed("hi",d=>hoverSet.has(d.id));
+  linkSel.classed("hi",e=>focus && ((e.source.id===focus)||(e.target.id===focus)));
+  if(n){ tip.hidden=false; moveTip(ev,n); } else tip.hidden=true;
+  updateLabels(d3.zoomTransform(svg.node()).k);
+}
+function moveTip(ev,n){
+  const r=mapEl.getBoundingClientRect();
+  tip.innerHTML=`${esc(fullLabel(n.id,S.view))}<small>${L().count(n.count)} · ${L().meanYear} ${n.mean.toFixed(1)}</small>`;
+  tip.style.left=(ev.clientX-r.left)+"px"; tip.style.top=(ev.clientY-r.top)+"px";
+}
+function select(id){ S.sel=id; markSel(); side(); pubList(); geoSel(); }
+function markSel(){ nodeSel.classed("sel",n=>n.id===S.sel); hover(null); }
+
+function legend(){
+  const el=document.getElementById("legend");
+  if(S.color==="year"){
+    el.innerHTML=`<div>${L().meanYear}</div><div class="ramp"></div><div class="rampl"><span>${Math.floor(yearExt[0])}</span><span>${Math.ceil(yearExt[1])}</span></div>`;
+    return;
+  }
+  const byC=d3.groups(G.N,n=>n.cluster).sort((a,b)=>a[0]-b[0]);
+  const rows=byC.slice(0,8).map(([c,ns])=>{
+    const top=ns.sort((a,b)=>b.count-a.count).slice(0,2).map(n=>n.label).join(", ");
+    return `<div class="row" title="${attr(top)}"><span class="sw" style="background:var(--s${c+1})"></span><span>${esc(top)}</span></div>`;
+  });
+  if(byC.length>8) rows.push(`<div class="row"><span class="sw" style="background:var(--s0)"></span><span>${L().other} (${byC.length-8})</span></div>`);
+  el.innerHTML=rows.join("");
+}
+
+function side(){
+  const el=document.getElementById("side"), l=L();
+  if(S.sel){
+    const n=G.N.find(x=>x.id===S.sel); if(!n){S.sel=null; return side();}
+    const nb=G.E.filter(e=>e.source.id===n.id||e.target.id===n.id).map(e=>({o:e.source.id===n.id?e.target:e.source,w:e.w})).sort((a,b)=>b.w-a.w);
+    const maxw=nb[0]?nb[0].w:1;
+    const yrs=d3.extent(n.years);
+    el.innerHTML=`<button class="back" id="back">${l.back}</button>
+      <h2>${esc(n.label)}</h2>${S.view==="orgs"?`<p class="sub">${esc(fullLabel(n.id,"orgs"))}</p>`:""}
+      <dl class="kv"><dt>${l.nPubs}</dt><dd>${n.count}</dd><dt>${l.years}</dt><dd>${yrs[0]}${yrs[1]!==yrs[0]?"–"+yrs[1]:""}</dd><dt>${l.links}</dt><dd>${nb.length}</dd>
+      <dt>${l.cluster}</dt><dd><span class="sw" style="display:inline-block;vertical-align:-1px;background:${colorOf(n)}"></span> ${n.cluster+1}</dd></dl>
+      <h3>${l.strongest}</h3>
+      <ol class="rank">${nb.slice(0,12).map(x=>`<li><button data-id="${attr(x.o.id)}"><span class="nm">${esc(x.o.label)}</span><span class="ct">${x.w}</span><span class="bar" style="width:${100*x.w/maxw}%"></span></button></li>`).join("")}</ol>`;
+    el.querySelector("#back").onclick=()=>select(null);
+  } else {
+    let list=[...G.N].sort((a,b)=>b.count-a.count||a.label.localeCompare(b.label));
+    if(S.view==="authors") list=list.filter(n=>n.id!==OWNER);
+    const max=list[0]?list[0].count:1;
+    el.innerHTML=`<h2>${l.rankTitle[S.view]}</h2><p class="sub">${l.rankSub} ${S.y0}–${S.y1}</p>
+      ${list.length?`<ol class="rank">${list.slice(0,20).map(n=>`<li><button data-id="${attr(n.id)}"><span class="nm">${esc(n.label)}</span><span class="ct">${n.count}</span><span class="bar" style="width:${100*n.count/max}%"></span></button></li>`).join("")}</ol>`:`<p class="sub">${l.none}</p>`}`;
+  }
+  el.querySelectorAll(".rank button").forEach(b=>{
+    b.onclick=()=>{select(b.dataset.id);};
+    b.onmouseenter=()=>{const n=G.N.find(x=>x.id===b.dataset.id); if(n){hoverSet=neighbours(n.id); svg.classed("dim",true); nodeSel.classed("hi",d=>hoverSet.has(d.id)); linkSel.classed("hi",e=>e.source.id===n.id||e.target.id===n.id); updateLabels(d3.zoomTransform(svg.node()).k);} };
+    b.onmouseleave=()=>hover(null);
+  });
+}
+function pubList(){
+  const l=L(); let pubs=G.pubs.slice();
+  if(S.sel){ pubs=pubs.filter(p=>{let its=items(p,S.view); return its.includes(S.sel);}); }
+  pubs.sort((a,b)=>b.year-a.year||a.title.localeCompare(b.title));
+  document.getElementById("pubsTitle").textContent = S.sel ? l.pubsOf+label(S.sel,S.view) : l.pubs;
+  document.getElementById("pubsCount").textContent = l.count(pubs.length);
+  document.getElementById("pubList").innerHTML = pubs.map(p=>{
+    const au=p.authors.map(a=>a===OWNER?`<span class="me">${esc(a)}</span>`:esc(a)).join(", ");
+    const tag=p.type!=="article"?`<span class="tag">${l[p.type]}</span>`:"";
+    const doi=p.doi?`<a href="https://doi.org/${attr(p.doi)}" target="_blank" rel="noopener">doi:${esc(p.doi)}</a>`:"";
+    return `<li><span class="yr">${p.year}</span><div><p class="pt">${esc(p.title)}</p><p class="pa">${au}</p><p class="pj">${esc(p.journal)}${tag}${doi}</p></div></li>`;
+  }).join("");
+}
+function stats(){
+  const pubs=G.pubs, l=L();
+  const au=new Set(); pubs.forEach(p=>p.authors.forEach(a=>{if(a!==OWNER)au.add(a)}));
+  const og=new Set(), co=new Set(); pubs.forEach(p=>p.orgs.forEach(o=>{og.add(o);co.add(ORGS[o][3]);}));
+  document.getElementById("stats").innerHTML=[pubs.length,au.size,og.size,co.size].map((v,i)=>`<div class="stat"><b>${v}</b><span>${l.stats[i]}</span></div>`).join("");
+}
+function datalist(){ document.getElementById("names").innerHTML=G.N.map(n=>`<option value="${attr(n.label)}">`).join(""); }
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+function attr(s){return esc(s).replace(/'/g,"&#39;");}
+
+/* ---------- controls ---------- */
+const viewsEl=document.getElementById("views");
+function drawViews(){
+  viewsEl.innerHTML=VIEWS.map(v=>`<button data-v="${v}" aria-pressed="${v===S.view}">${L().views[v]}</button>`).join("");
+  viewsEl.querySelectorAll("button").forEach(b=>b.onclick=()=>{
+    S.view=b.dataset.v; S.sel=null; S.min=DEFAULT_MIN[S.view]; minocc.value=S.min; minoccv.textContent=S.min;
+    try{history.replaceState(null,"","#"+S.view);}catch(e){}
+    gN.selectAll("*").remove(); gL.selectAll("*").remove(); drawViews(); render();
+  });
+}
+function i18n(){
+  document.documentElement.lang=S.lang;
+  document.querySelectorAll("[data-i18n]").forEach(e=>{const v=L()[e.dataset.i18n]; if(typeof v==="string") e.textContent=v;});
+  document.getElementById("q").placeholder=L().ph;
+  document.querySelectorAll("#lang button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.l===S.lang));
+}
+const minocc=document.getElementById("minocc"), minoccv=document.getElementById("minoccv");
+minocc.value=S.min; minoccv.textContent=S.min;
+minocc.oninput=()=>{S.min=+minocc.value; minoccv.textContent=S.min; render();};
+const y0=document.getElementById("y0"), y1=document.getElementById("y1");
+y0.oninput=()=>{ if(+y0.value>+y1.value) y0.value=y1.value; S.y0=+y0.value; document.getElementById("y0v").textContent=S.y0; render(); };
+y1.oninput=()=>{ if(+y1.value<+y0.value) y1.value=y0.value; S.y1=+y1.value; document.getElementById("y1v").textContent=S.y1; render(); };
+document.getElementById("color").onchange=e=>{S.color=e.target.value; render();};
+document.getElementById("hideMe").onchange=e=>{S.hideMe=e.target.checked; render();};
+document.getElementById("patents").onchange=e=>{S.patents=e.target.checked; render();};
+document.getElementById("q").addEventListener("change",e=>{
+  const v=e.target.value.trim().toLowerCase(); if(!v) return;
+  const n=G.N.find(x=>x.label.toLowerCase()===v)||G.N.find(x=>x.label.toLowerCase().includes(v));
+  if(n){ select(n.id); const W=mapEl.clientWidth,H=mapEl.clientHeight,k=2; svg.transition().duration(400).call(zoom.transform,d3.zoomIdentity.translate(W/2-k*n.x,H/2-k*n.y).scale(k)); }
+});
+document.querySelectorAll("#lang button").forEach(b=>b.onclick=()=>{S.lang=b.dataset.l; try{localStorage.setItem("rr-lang",S.lang);}catch(e){} i18n(); drawViews(); render();});
+document.getElementById("zin").onclick=()=>geoActive()?geo.transition().duration(250).call(geoZoom.scaleBy,1.5):svg.transition().duration(250).call(zoom.scaleBy,1.4);
+document.getElementById("zout").onclick=()=>geoActive()?geo.transition().duration(250).call(geoZoom.scaleBy,1/1.5):svg.transition().duration(250).call(zoom.scaleBy,1/1.4);
+document.getElementById("zfit").onclick=()=>geoActive()?geo.transition().duration(300).call(geoZoom.transform,d3.zoomIdentity):fit(true);
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>render());
+new MutationObserver(()=>{ if(nodeSel) render(); }).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+let rt; window.addEventListener("resize",()=>{clearTimeout(rt); rt=setTimeout(()=>{const W=mapEl.clientWidth,H=mapEl.clientHeight; svg.attr("viewBox",[0,0,W,H]); fit(false); if(geoActive()) drawGeo();},150);});
+
+i18n(); drawViews(); render();
+})();
+</script>
+
+</body>
+</html>
